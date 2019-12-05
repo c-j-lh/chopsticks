@@ -1,66 +1,99 @@
 from tqdm import tqdm
+from itertools import *
 
-class Node:
-    def __init__(self, state, player, pbar=None):
-        """State should be a tuple of 2x2=4 ints
-        Player 0 and player 1
-        """
-        self.state = state
-        self.player = player
-        if pbar is None:
-            pbar = tqdm(unit='function call')
-        self.pbar = pbar
+def act(state, parents, debug=0):
+    "Returns a tuple: (board, player), reward"
+    board, player = state
+    if board in dp:
+        return dp[board]
 
-    def get_actions(self):
-        "Returns a list of next nodes"
-        return [Node(self.state[:index]+[self.player]+self.state[index+1:], -self.player, self.pbar) for index,val in enumerate(self.state) if val==0]
+    # Avoid cyclic recursion
+    if board in parents:
+        return 0 # cycling is undesirable?
 
-    def turn(self):
-        return sum(cell!=0 for cell in self.state)
+    # Checks for player death (game end)
+    for _player in range(2):
+        if sum(board[2*_player : 2*_player+2]) == 0:
+            return -50 _player == player else 50 # may change values later
 
-    def get_action(self):
-        ans = self._get_action()
-        self.pbar.close()
-        return ans
+    source = 2*player
+    for hand in range(4):
+        if hand == source:
+            continue
+        act = 0
 
-    def _get_action(self):
-        "Returns the (next best Node, reward)"
-        #print('get_action({})\n'.format(self))
-        self.pbar.update()
-        for row in range(3): 
-            if sum(self.state[3*row:3*(row+1)]) == 3*self.player: return (self,10)
-        for col in range(3): 
-            if sum(self.state[3*row+col] for row in range(3)) == 3*self.player: return (self,10)
-        if sum(self.state[4*cnt] for cnt in range(3)) == 3*self.player: return (self,10)
-        if sum(self.state[2*cnt+2] for cnt in range(3)) == 3*self.player: return (self,10)
+    parents = set.union(parents, {board})
+    playerTotal = sum(board[2*player: 2*player+2])
+    dp[board] = max(chain(act(
+                              (board[:target] + (board[target]+sourceValue if board[target]+sourceValue<limit else 0,) + board[target+1:], parents)
+                          ) for source,sourceValue in enumerate(board[2*player: 2*player+2]) for target in range(4) if target != source,
+                          act(
+                              (board[:2*player] + (value, total-value) + board[2*player+2:], parents)
+                          ) for value in range(1,limit) if 1<=total-value and total-value<limit
+                    ),
+                    key = lambda board,reward:reward)
 
-        for row in range(3):
-            if sum(self.state[3*row:3*(row+1)]) == 3*-self.player: return (self,-10)
-        for col in range(3):
-            if sum(self.state[3*row+col] for row in range(3)) == 3*-self.player: return (self,-10)
-        if sum(self.state[4*cnt] for cnt in range(3)) == 3*-self.player: return (self,-10)
-        if sum(self.state[2*cnt+2] for cnt in range(3)) == 3*-self.player: return (self,-10)
+    return ans
 
-        if not sum(cell==0 for cell in self.state):
-            return (self, self.turn()) # may change later
 
-        actions = self.get_actions()
-        cases = [action._get_action() for action in actions]
-        cases = [(action, -case[1]) for case,action in zip(cases,actions)] # invert the rewards
-        #print('actions:',actions)
-        #print('cases:',cases)
-        case = max(cases, key=lambda pair:pair[1]) # max by reward
-        return case
+board = (1, 1, 1, 1)
+player = 0 # 0 for AI, 1 for human
+dp = {}
+limit = 5
 
-        
-    def __str__(self):
-        "Represents player 1 with X, player -1 with O"
-        return '\n' + '\n'.join(''.join(' XO'[self.state[3*i+j]] for j in range(3)) for i in range(3)) + '\n' 
+def print_board(board):
+    print('A B')
+    print('{} {}'.format(*board[:2]))
+    print()
+    print('{} {}'.format(*board[2:]))
+    print('C D')
+    print('\n')
 
-    def __repr__(self):
-        "For printing in lists"
-        return str(self)
+def isValid(state, choice):
+    choice = choice.upper()
+    board, player = state
+    hands = tuple(ord(letter)-order('A') for letter in choice[:2])
+    if hands[0]//2 != player:
+        if hands[1]//2 != player:
+            return False
+        hands = hands[1], hands[0]
+        # swap so that current player is first
 
-start = Node([0]*9, 1)
-print('\n\n',start.get_action())
+    if len(set(hands))==1: # hands are the same
+        return False
 
+    if sum(hands)==2*player and len(choice)==4: # redistributing between own hands
+        a,b = map(int, choice[2:])
+        if a+b != sum(hands[2*player:2*player+2]):
+            return False
+        if hands[0] > hands[1]:
+            hands = hands[1], hands[0]
+            a,b = b,a
+        if a,b == board[2*player : 2*player+2]:
+            return False # needs to change
+        if a <= 0 or a >= limit:
+            return False
+        if b <= 0 or b >= limit:
+            return False
+        return board[:2*player] + (a,b) + board[2*player+2:]
+
+    if len(choice)!=2:
+        return False
+
+    # tapping
+    source,target = hands[0],hands[1]
+    if board[source] == 0: # source is dead
+        return False
+    if board[target] == 0: # target is dead
+        return False
+    return board[:target] + (board[target]+board[source] if board[target]+board[source]<limit else 0) + board[target+1:]
+    
+
+while not finish:
+    print_board(board)
+    if player: # human
+        while not isValid((board, player), choice):
+            choice = input('Enter move:')
+    else:
+        state, _ = act((board, player), set())
+    player = 1-player
