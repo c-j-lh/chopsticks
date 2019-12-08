@@ -1,6 +1,13 @@
 from chopsticks import act
 
 def print_board(board):
+    """Prints the board. e.g.
+    A B
+    3 4
+
+    4 2
+    C D
+    """
     print('A B')
     print('{} {}'.format(*board[:2]))
     print()
@@ -9,19 +16,25 @@ def print_board(board):
     print('\n')
 
 def isValid(state, choice):
+    """Checks whether choice is valid.
+    If choice is valid, return the state of the board;
+    else, return False
+    """
     choice = choice.upper()
     board, player = state
     hands = tuple(ord(letter)-order('A') for letter in choice[:2])
     if hands[0]//2 != player:
         if hands[1]//2 != player:
             return False
-        hands = hands[1], hands[0]
-        # swap so that current player is first
+        hands = hands[1], hands[0] # swap so that current player is first
+        
 
-    if len(set(hands))==1: # hands are the same
+    # hands are the same
+    if len(set(hands))==1:
         return False
 
-    if sum(hands)==2*player and len(choice)==4: # redistributing between own hands
+    # redistributing between own hands
+    if sum(hands)==2*player and len(choice)==4: 
         a,b = map(int, choice[2:])
         if a+b != sum(hands[2*player:2*player+2]):
             return False
