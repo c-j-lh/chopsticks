@@ -22,7 +22,7 @@ def isValid(state, choice):
     """
     choice = choice.upper()
     board, player = state
-    hands = tuple(ord(letter)-order('A') for letter in choice[:2])
+    hands = tuple(ord(letter)-ord('A') for letter in choice[:2])
     if hands[0]//2 != player:
         if hands[1]//2 != player:
             return False
@@ -68,11 +68,13 @@ winner = -1 # no winner yet
 while winner == -1:
     print_board(board)
     if player: # human
+        choice = 'rubbish'
         while not isValid((board, player), choice):
             choice = input('Enter move:')
     else:
-        state, _ = act((board, player), set())
-    player = 1-player
+        (board, _), _ = act((board, player), set())
     for _player in range(2):
-        if sum(board[2*_player : 2*_player+2]==0):
-            winner = _player
+        if not sum(hand != 0 for hand in board[2*_player : 2*_player+2]):
+            winner = 1 - _player
+    print(board, winner)
+    player = 1-player
