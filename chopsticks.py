@@ -42,11 +42,12 @@ cnt = 0
 def recurse(board, player, level=0):
     #print('  '*level, board, player)
     if (board, player) in dp:
-        if dp[(board, player)][1] != None:
-            return dp[(board, player)]
-        else:  # cycle
-            return dp[(board, player)][0], None
-    dp[(board, player)] = 'undef state', None 
+        #if dp[(board, player)][1] != None:
+        #    return dp[(board, player)]
+        #else:  # cycle
+        #   return dp[(board, player)][0], None
+        return dp[(board, player)][0], None
+    dp[board, player] = None, None 
 
     if (0,0) == board[0:2]:
         dp[board, player] = (board, 10000-level); return dp[board, player]
@@ -61,20 +62,22 @@ def recurse(board, player, level=0):
         branches.append(recurse(action, 1-player, level+1))
 
     ##print('branches:', branches) 
-    if player==0:
+    # 0: minimizing player
+    # 1: maximizing player
+    if player==0:  # minimizing player
         index = min(range(len(branches)),
             key=lambda x:branches[x][1] if branches[x][1]!=None else float('inf'))
         ans = actions_[index], branches[index][1]
-        if ans[1] == float('inf'): ans = 'undef state', None
-        dp[(board, player)] = ans
+        if ans[1] == float('inf'): ans = None, None
+        dp[board, player] = ans
         return ans
 
     if player==1:
         index = max(range(len(branches)),
             key=lambda x:branches[x][1] if branches[x][1]!=None else -float('inf'))
         ans = actions_[index], branches[index][1]
-        if ans[1] == -float('inf'): ans = 'undef state', None
-        dp[(board, player)] = ans
+        if ans[1] == -float('inf'): ans = None, None
+        dp[board, player] = ans
         return ans
 
 
