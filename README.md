@@ -1,1 +1,1 @@
-Chopsticks AI and game interface
+Chopsticks minimax in progress
